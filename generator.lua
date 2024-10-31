@@ -22,29 +22,11 @@ local function getSubPath(path)
     return path
 end
 
-local function get_base_path()
-    local expectedPath = '/src/main/java'
-    local path = vim.fn.expand("%:p:h")
-
-    -- Check if the expected directory exists
-    if vim.fn.isdirectory(path .. expectedPath) == 1 then
-        local sub_path = getSubPath(vim.fn.getcwd())
-        if sub_path then
-            local parsed = string.find(sub_path, expectedPath)
-            if parsed then
-                return sub_path:sub(parsed + 15):gsub('/', '.')
-            end
-        end
-    end
-
-    -- If we reach here, something went wrong, return nil
-    return nil
-end
-
 -- Detect the base path for the project (src/main/java)
 local function detect_base_path()
     -- Case 1: Check if inside `src/main/java`
-    local current_path = vim.fn.expand('%:p:h') -- Get the current file's directory
+    local current_path = vim.fn.getcwd()
+    -- Get the current file's directory
     if current_path:match("src/main/java") then
         return current_path:match("(.*/src/main/java)")  -- Return the base path
     end
@@ -70,6 +52,27 @@ local function detect_base_path()
         print("Aborted: No valid base path.")
         return nil  -- Return nil if the user chooses not to create the directory
     end
+end
+
+local  function get_base_path()
+	detect_base_path()
+	local expectedPath = '/src/main/java'
+	local path = vim.fn.expand("%:p:h")
+	local index = string.find(path,expectedPath)
+	if index ~= nil then
+		local base_start = index + string.len(expectedPath)
+	end
+
+	local isD = vim.fn.isdirectory(path .. '/src/main/java/')
+	if isD then 
+		local path = getSubPath(vim.fn.getcwd())
+		if path ~= nil then
+
+			local parsed = string.find(path,expectedPath)
+			return path:sub(parsed+15):gsub('/','.')
+		end
+	end
+	return nil
 end
 
 -- Helper: Split input by the last dot to extract package and class name
