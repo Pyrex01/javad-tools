@@ -7,40 +7,40 @@ local function is_pascal_case(str)
 end
 
 local function getSubPath(path)
-	local dir_pattern = path..'/*'
-	local dir_list = vim.fn.glob(dir_pattern,0,1)
-	if dir_list == nil or next(dir_list) == nil then
-		return path
-	end
+    local dir_pattern = path .. '/*'
+    local dir_list = vim.fn.glob(dir_pattern, 0, 1)
+    if dir_list == nil or next(dir_list) == nil then
+        return path
+    end
 
-	for _, dir in ipairs(dir_list) do
-		if vim.fn.isdirectory(dir) == 1 then
-			return getSubPath(dir)
-		end
-	end
+    for _, dir in ipairs(dir_list) do
+        if vim.fn.isdirectory(dir) == 1 then
+            return getSubPath(dir)
+        end
+    end
 
-		return path
+    return path
 end
 
-local  function get_base_path()
-	local expectedPath = '/src/main/java'
-	local path = vim.fn.expand("%:p:h")
-	local index = string.find(path,expectedPath)
-	if index ~= nil then
-		local base_start = index + string.len(expectedPath)
-	end
+local function get_base_path()
+    local expectedPath = '/src/main/java'
+    local path = vim.fn.expand("%:p:h")
 
-	local isD = vim.fn.isdirectory(path .. '/src/main/java/')
-	if isD then 
-		local path = getSubPath(vim.fn.getcwd())
-		if path ~= nil then
+    -- Check if the expected directory exists
+    if vim.fn.isdirectory(path .. expectedPath) == 1 then
+        local sub_path = getSubPath(vim.fn.getcwd())
+        if sub_path then
+            local parsed = string.find(sub_path, expectedPath)
+            if parsed then
+                return sub_path:sub(parsed + 15):gsub('/', '.')
+            end
+        end
+    end
 
-			local parsed = string.find(path,expectedPath)
-			return path:sub(parsed+15):gsub('/','.')
-		end
-	end
-	return nil
+    -- If we reach here, something went wrong, return nil
+    return nil
 end
+
 -- Detect the base path for the project (src/main/java)
 local function detect_base_path()
     -- Case 1: Check if inside `src/main/java`
@@ -112,10 +112,9 @@ end
 function M.generate_java_file()
     -- Detect package automatically
     local detected_package = get_base_path()
-    print(detected_package)
-    local input_text = "";
-    if detected_package ~= nil then 
-	    input_text = detected_package .. "."
+    local input_text = ""
+    if detected_package ~= nil then
+        input_text = detected_package .. "."
     end
 
     select_type(function(file_type)
