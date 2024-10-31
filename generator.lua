@@ -6,38 +6,41 @@ local function is_pascal_case(str)
     return str:match("^[A-Z][a-zA-Z0-9]*$") ~= nil
 end
 
--- Helper: Query the LSP for the current Java project’s package if possible
-local function get_lsp_package_path()
-    local clients = vim.lsp.get_active_clients()
-    for _, client in ipairs(clients) do
-        if client.name == 'jdt.ls' then
-            local uri = vim.uri_from_bufnr(0)
-            local path = vim.uri_to_fname(uri)
-            -- Assume the package starts after 'src/main/java'
-            local package_path = path:match("src/main/java/(.*)")
-            if package_path then
-                return package_path:gsub("/", ".")
-            end
-        end
-    end
-    return nil
+local function getSubPath(path)
+	local dir_pattern = path..'/*'
+	local dir_list = vim.fn.glob(dir_pattern,0,1)
+	if dir_list == nil or next(dir_list) == nil then
+		return path
+	end
+
+	for _, dir in ipairs(dir_list) do
+		if vim.fn.isdirectory(dir) == 1 then
+			return getSubPath(dir)
+		end
+	end
+
+		return path
 end
 
--- Fallback: Detect package based on file structure relative to `src/main/java`
-local function get_file_based_package_path()
-    local current_path = vim.fn.expand('%:p:h')
-    local base_path = current_path:match("(.*/src/main/java/)(.*)")
-    if base_path then
-        return base_path:gsub("/", ".")
-    end
-    return nil
-end
+local  function get_base_path()
+	local expectedPath = '/src/main/java'
+	local path = vim.fn.expand("%:p:h")
+	local index = string.find(path,expectedPath)
+	if index ~= nil then
+		local base_start = index + string.len(expectedPath)
+	end
 
--- Auto-detect the package path, either from LSP or file structure
-local function auto_detect_package()
-    return get_lsp_package_path() or get_file_based_package_path() or ""
-end
+	local isD = vim.fn.isdirectory(path .. '/src/main/java/')
+	if isD then 
+		local path = getSubPath(vim.fn.getcwd())
+		if path ~= nil then
 
+			local parsed = string.find(path,expectedPath)
+			return path:sub(parsed+15):gsub('/','.')
+		end
+	end
+	return nil
+end
 -- Detect the base path for the project (src/main/java)
 local function detect_base_path()
     -- Case 1: Check if inside `src/main/java`
@@ -108,13 +111,18 @@ end
 -- Main function to generate Java file
 function M.generate_java_file()
     -- Detect package automatically
-    local detected_package = auto_detect_package()
+    local detected_package = get_base_path()
+    print(detected_package)
+    local input_text = "";
+    if detected_package ~= nil then 
+	    input_text = detected_package .. "."
+    end
 
     select_type(function(file_type)
         -- Prompt for package and class input with pre-filled package
         vim.ui.input({
             prompt = "Enter Package and Class (e.g., com.example.Main): ",
-            default = detected_package .. ".",
+            default = input_text
         }, function(input)
             if not input or input == "" then
                 print("Error: Input cannot be empty.")
