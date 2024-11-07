@@ -1,5 +1,5 @@
 -- init.lua
-local generator = require('generator')
+local generator = require('javad-tools.generator')
 
 local M = {}
 
