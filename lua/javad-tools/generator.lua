@@ -55,6 +55,13 @@ local function detect_base_path()
 end
 
 local  function get_base_path()
+
+	local firstLine = vim.api.nvim_buf_get_lines(0,0,1,false)[1]
+	print(firstLine)
+	if string.find(firstLine,"package") then
+		return string.sub(firstLine,9,-2)
+	end
+
 	detect_base_path()
 	local expectedPath = '/src/main/java'
 	local path = vim.fn.expand("%:p:h")
